@@ -52,6 +52,7 @@ button,input{font:inherit} a{color:inherit}
 .footer{margin-top:38px;text-align:center;color:var(--muted);font-size:11px}
 @media(max-width:1000px){.layout{grid-template-columns:1fr} .sidebar{position:relative;top:auto;display:flex;overflow:auto} .sidebar button{width:auto;white-space:nowrap} .g4{grid-template-columns:1fr 1fr} .g3,.resource-list{grid-template-columns:1fr 1fr}}
 @media(max-width:650px){.topbar-inner{padding:10px 14px} .layout{padding:18px 14px 50px} .brand small{display:none} .owl{width:52px;height:43px;background-size:250px 141px} .g4,.g3,.g2,.resource-list,.metrics{grid-template-columns:1fr} .hub-header{grid-template-columns:1fr;padding:25px 20px} .hub-header h1{font-size:36px} .section-head{align-items:flex-start;flex-direction:column} .search{width:100%;min-width:0}}
+.evidence-field{margin:18px 0}.evidence-field h4{margin:0 0 7px;font-size:13px;color:var(--teal)}.evidence-field p{margin:0;white-space:pre-wrap;line-height:1.65;font-size:14px;overflow-wrap:anywhere}.evidence-limit{font-size:12px!important;margin-top:18px}
 </style>
 <meta name="robots" content="noindex,nofollow">
 </head>
@@ -157,6 +158,30 @@ let familyStudents = [];
 
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
+
+function renderEvidence(e) {
+  const fields = [
+    ['Produção oral', e.speaking_notes],
+    ['Gramática', e.grammar_notes],
+    ['Vocabulário', e.vocabulary_notes],
+    ['Interação, autonomia e próximos passos', e.participation_notes],
+    ['Pronúncia', e.pronunciation_notes],
+    ['Hipótese de nível — observação provisória', e.cefr_hypothesis]
+  ].filter(([, value]) => value && String(value).trim());
+  let sourceLink = '';
+  try {
+    const url = new URL(e.transcript_url);
+    if (url.protocol === 'https:') sourceLink = `<a class="btn ghost" href="${esc(url.href)}" target="_blank" rel="noopener noreferrer">Consultar fonte ↗</a>`;
+  } catch (_) { /* No verified source link. */ }
+  return `<article class="card private-card">
+    <span class="status">Somente professora</span>
+    <h3>${esc(e.lesson_date)}</h3>
+    ${e.source_topic ? `<p class="intro">${esc(e.source_topic)}</p>` : ''}
+    ${fields.length ? fields.map(([label, value]) => `<section class="evidence-field"><h4>${esc(label)}</h4><p>${esc(value)}</p></section>`).join('') : '<p class="intro">Evidência registrada, ainda sem observações por área.</p>'}
+    ${!e.pronunciation_notes ? '<p class="intro evidence-limit">Pronúncia não avaliada neste registro.</p>' : ''}
+    ${sourceLink}
+  </article>`;
+}
 
 function setStatus(show, text='Carregando dados...') {
   $('status').textContent = text;
@@ -344,7 +369,7 @@ function renderStudentHub(student, classes, reports, progress, units, tasks, upd
   const updatesHtml = updates.length ? updates.map(u=>`<article class="card update-card"><div class="eyebrow">${esc(u.lesson_date||'')}</div><h3>${esc(u.title)}</h3><p class="intro">${esc(u.body)}</p></article>`).join('') : '<div class="empty">Ainda não há atualizações pedagógicas publicadas para a família.</div>';
 
   const evidenceHtml = profile.role === 'teacher'
-    ? (evidence.length ? evidence.map(e=>`<article class="card private-card"><span class="status">Teacher only</span><h3>${esc(e.lesson_date)}</h3><p class="intro">${esc(e.speaking_notes || e.participation_notes || e.grammar_notes || 'Evidência registrada.')}</p></article>`).join('') : '<div class="empty">Ainda não há evidências privadas registradas.</div>')
+    ? (evidence.length ? evidence.map(renderEvidence).join('') : '<div class="empty">Ainda não há evidências privadas registradas.</div>')
     : '';
 
   $('studentHub').innerHTML = `
